@@ -1,14 +1,23 @@
 import { Router } from 'express';
 import { Photo } from '../models/photo.model';
 import multer from 'multer';
+import path from 'path';
 
 const router = Router();
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, path.join(__dirname, '../assets/images'));
+    },
+    filename: (req, file, cb) => {
+        cb(null, Date.now() + path.extname(file.originalname));
+    }
+})
+
+const upload = multer({ storage: storage });
 
 router.get('/', async (req, res, next) => {
     try {
         const photos = await Photo.find();
-    
-        /** @TODO Render Existing Photos in index.ejs */
         res.render('index', { photos });
     } catch (err) {
         console.error(err);
@@ -18,14 +27,18 @@ router.get('/', async (req, res, next) => {
 
 router.post(
     '/',
-    /** @TODO Add multer middleware */
+    upload.single('file'),
     async (req, res, next) => {
         try {
-
-            /** @TODO Save Photo in database */
+            console.log(req.file);
+            const newPhoto = new Photo({
+                path: req.file?.filename,
+                title: req.body.title
+            })
+            await newPhoto.save();
             res.redirect('/');
-
-        } catch (err) {
+        }
+        catch (err) {
             console.error(err);
             next(err)
         }
